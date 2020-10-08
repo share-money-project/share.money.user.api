@@ -9,6 +9,7 @@ public class UserRest {
     private String lastName;
     private String email;
     private List<AddressRest> addresses;
+    private WalletRest wallet;
 
     public String getUserId() {
         return userId;
@@ -48,5 +49,13 @@ public class UserRest {
 
     public void setAddresses(List<AddressRest> addresses) {
         this.addresses = addresses;
+    }
+
+    public WalletRest getWallet() {
+        return wallet;
+    }
+
+    public void setWallet(WalletRest wallet) {
+        this.wallet = wallet;
     }
 }

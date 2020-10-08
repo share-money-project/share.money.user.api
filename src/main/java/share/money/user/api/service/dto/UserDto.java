@@ -1,5 +1,7 @@
 package share.money.user.api.service.dto;
 
+import share.money.user.api.controller.model.response.WalletRest;
+
 import java.io.Serializable;
 import java.util.Collection;
 import java.util.List;
@@ -15,6 +17,7 @@ public class UserDto implements Serializable {
     private String encryptedPassword;
     private List<AddressDto> addresses;
     private Collection<String> roles;
+    private WalletRest wallet;
 
     public long getId() {
         return id;
@@ -86,5 +89,13 @@ public class UserDto implements Serializable {
 
     public void setRoles(Collection<String> roles) {
         this.roles = roles;
+    }
+
+    public WalletRest getWallet() {
+        return wallet;
+    }
+
+    public void setWallet(WalletRest wallet) {
+        this.wallet = wallet;
     }
 }

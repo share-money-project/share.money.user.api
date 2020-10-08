@@ -1,7 +1,9 @@
 package share.money.user.api.service.impl;
 
-import com.sun.security.auth.UserPrincipal;
+import org.apache.commons.lang.StringUtils;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -11,11 +13,13 @@ import share.money.user.api.repository.RoleRepository;
 import share.money.user.api.repository.UserRepository;
 import share.money.user.api.repository.entity.RoleEntity;
 import share.money.user.api.repository.entity.UserEntity;
+import share.money.user.api.security.UserPrincipal;
 import share.money.user.api.service.UserService;
 import share.money.user.api.service.dto.UserDto;
 import share.money.user.api.shared.ModelMapper;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class UserServiceImpl implements UserService {
@@ -30,7 +34,9 @@ public class UserServiceImpl implements UserService {
     private BCryptPasswordEncoder bCryptPasswordEncoder;
 
     public UserDto createUser(UserDto userDto) {
-        userRepository.findByEmailAsOptional(userDto.getEmail()).ifPresent((e) -> { throw new RuntimeException(String.format("Record with email [%s] already exist", e.getEmail())); });
+        userRepository.findByEmailAsOptional(userDto.getEmail()).ifPresent((e) -> {
+            throw new RuntimeException(String.format("Record with email [%s] already exist", e.getEmail()));
+        });
 
         userDto.getAddresses().forEach(ad -> {
             ad.setAddressId(UUID.randomUUID().toString());
@@ -65,17 +71,30 @@ public class UserServiceImpl implements UserService {
     }
 
     public List<UserDto> getUsers(Integer page, Integer limit) {
-        return null;
+
+        if (page > 0) --page;
+
+        List<UserEntity> content = userRepository.findAll(PageRequest.of(page, limit)).getContent();
+
+        return content.stream().map(entity -> ModelMapper.map(entity, UserDto.class)).collect(Collectors.toList());
     }
 
     public UserDto updateUser(String id, UserDto userDto) {
-        return null;
+        UserEntity userEntity = userRepository.findByUserIdAsOptional(id).orElseThrow(() -> new RuntimeException(String.format("User with id [%s] wasn't find", id)));
+
+        if (!StringUtils.isEmpty(userDto.getFirstName())) userEntity.setFirstName(userDto.getFirstName());
+        if (!StringUtils.isEmpty(userDto.getLastName())) userEntity.setLastName(userDto.getLastName());
+        if (!StringUtils.isEmpty(userDto.getEmail())) userEntity.setEmail(userDto.getEmail());
+
+        UserEntity updatedUser = userRepository.save(userEntity);
+
+        return ModelMapper.map(updatedUser, UserDto.class);
     }
 
     public void deleteUser(String id) {
-
+        UserEntity userEntity = userRepository.findByUserIdAsOptional(id).orElseThrow(() -> new RuntimeException(String.format("User with id [%s] wasn't find", id)));
+        userRepository.delete(userEntity);
     }
-
 
     @Override
     public UserDto getUserDetailsByEmail(String email) {
@@ -86,6 +105,6 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
         UserEntity userEntity = userRepository.findByEmailAsOptional(email).orElseThrow(() -> new RuntimeException(String.format("User with id [%s] wasn't find", email)));
-        return new User(userEntity.getEmail(), userEntity.getEncryptedPassword(), true, true, true, true, new ArrayList<>());
+        return new UserPrincipal(userEntity);
     }
 }

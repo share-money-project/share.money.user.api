@@ -1,6 +1,7 @@
 package share.money.user.api.service.impl;
 
 import org.apache.commons.lang.StringUtils;
+import org.springframework.amqp.core.AmqpTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.env.Environment;
@@ -12,7 +13,10 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import share.money.user.api.controller.model.response.OperationStatusModel;
 import share.money.user.api.controller.model.response.WalletRest;
+import share.money.user.api.externalservice.WalletServiceClient;
+import share.money.user.api.externalservice.model.WalletCreationRequestModel;
 import share.money.user.api.repository.RoleRepository;
 import share.money.user.api.repository.UserRepository;
 import share.money.user.api.repository.entity.RoleEntity;
@@ -31,11 +35,12 @@ import java.util.stream.Collectors;
 @Service
 public class UserServiceImpl implements UserService {
 
+
     @Autowired
     private Environment environment;
 
     @Autowired
-    private RestTemplate restTemplate;
+    private WalletServiceClient walletServiceClient;
 
     @Autowired
     private UserRepository userRepository;
@@ -47,9 +52,7 @@ public class UserServiceImpl implements UserService {
     private BCryptPasswordEncoder bCryptPasswordEncoder;
 
     public UserDto createUser(UserDto userDto) {
-        userRepository.findByEmailAsOptional(userDto.getEmail()).ifPresent((e) -> {
-            throw new RuntimeException(String.format("Record with email [%s] already exist", e.getEmail()));
-        });
+        userRepository.findByEmailAsOptional(userDto.getEmail()).ifPresent((e) -> { throw new RuntimeException(String.format("Record with email [%s] already exist", e.getEmail())); });
 
         userDto.getAddresses().forEach(ad -> {
             ad.setAddressId(UUID.randomUUID().toString());
@@ -70,19 +73,20 @@ public class UserServiceImpl implements UserService {
         userEntity.setRoles(roleEntities);
 
         UserEntity savedUser = userRepository.save(userEntity);
+        WalletRest userWallet = walletServiceClient.createUserWallet(savedUser.getUserId(), new WalletCreationRequestModel(0.0));
 
-        return ModelMapper.map(savedUser, UserDto.class);
+        UserDto savedUserDto = ModelMapper.map(savedUser, UserDto.class);
+        savedUserDto.setWallet(userWallet);
+        return savedUserDto;
     }
 
     public UserDto getUserById(String id) {
         UserEntity userEntity = userRepository.findByUserIdAsOptional(id).orElseThrow(() -> new RuntimeException(String.format("User with id [%s] wasn't find", id)));
 
-        String walletUrl = String.format(environment.getProperty("wallet.url"), id);
-        ResponseEntity<WalletRest> walletRestResponseEntity = restTemplate.exchange(walletUrl, HttpMethod.GET, null, new ParameterizedTypeReference<WalletRest>() {});
-        WalletRest walletRest = walletRestResponseEntity.getBody();
+        WalletRest userWallet = walletServiceClient.getUserWallet(id);
 
         UserDto userDto = ModelMapper.map(userEntity, UserDto.class);
-        userDto.setWallet(walletRest);
+        userDto.setWallet(userWallet);
         return userDto;
     }
 
@@ -109,7 +113,9 @@ public class UserServiceImpl implements UserService {
 
     public void deleteUser(String id) {
         UserEntity userEntity = userRepository.findByUserIdAsOptional(id).orElseThrow(() -> new RuntimeException(String.format("User with id [%s] wasn't find", id)));
-        userRepository.delete(userEntity);
+        OperationStatusModel operationStatusModel = walletServiceClient.deleteWallet(id);
+        if (operationStatusModel.getStatus().equals("Success")) userRepository.delete(userEntity);
+        else throw new RuntimeException(operationStatusModel.getStatus());
     }
 
     @Override

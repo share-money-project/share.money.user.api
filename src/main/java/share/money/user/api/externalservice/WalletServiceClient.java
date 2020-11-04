@@ -3,12 +3,9 @@ package share.money.user.api.externalservice;
 import feign.hystrix.FallbackFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.amqp.core.AmqpTemplate;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.stereotype.Component;
 import org.springframework.web.bind.annotation.*;
-import share.money.user.api.config.SpringRabbitConfig;
 import share.money.user.api.controller.model.response.OperationStatusModel;
 import share.money.user.api.controller.model.response.WalletRest;
 import share.money.user.api.externalservice.model.WalletCreationRequestModel;
@@ -29,12 +26,9 @@ public interface WalletServiceClient {
 @Component
 class WalletFallbackFactory implements FallbackFactory<WalletServiceClient> {
 
-    @Autowired
-    private AmqpTemplate amqpTemplate;
-
     @Override
     public WalletServiceClient create(Throwable throwable) {
-        return new WalletFallback(throwable, amqpTemplate);
+        return new WalletFallback(throwable);
     }
 }
 
@@ -43,11 +37,9 @@ class WalletFallback implements WalletServiceClient {
     Logger logger = LoggerFactory.getLogger(this.getClass());
 
     private Throwable throwable;
-    private AmqpTemplate amqpTemplate;
 
-    public WalletFallback(Throwable throwable, AmqpTemplate amqpTemplate) {
+    public WalletFallback(Throwable throwable) {
         this.throwable = throwable;
-        this.amqpTemplate = amqpTemplate;
     }
 
     @Override
@@ -63,8 +55,6 @@ class WalletFallback implements WalletServiceClient {
 
     @Override
     public WalletRest createUserWallet(String userId, WalletCreationRequestModel walletCreationRequestModel) {
-
-        amqpTemplate.convertAndSend(SpringRabbitConfig.EXCHANGE_WALLET, SpringRabbitConfig.KEY_WALLET_CREATE, userId);
 
         logger.error(throwable.getLocalizedMessage());
         WalletRest walletRest = new WalletRest();

@@ -22,6 +22,7 @@ import share.money.user.api.repository.UserRepository;
 import share.money.user.api.repository.entity.RoleEntity;
 import share.money.user.api.repository.entity.UserEntity;
 import share.money.user.api.security.UserPrincipal;
+import share.money.user.api.service.BusinessException;
 import share.money.user.api.service.UserService;
 import share.money.user.api.service.dto.UserDto;
 import share.money.user.api.shared.ModelMapper;
@@ -80,8 +81,8 @@ public class UserServiceImpl implements UserService {
         return savedUserDto;
     }
 
-    public UserDto getUserById(String id) {
-        UserEntity userEntity = userRepository.findByUserIdAsOptional(id).orElseThrow(() -> new RuntimeException(String.format("User with id [%s] wasn't find", id)));
+    public UserDto getUserById(String id) throws BusinessException {
+        UserEntity userEntity = userRepository.findByUserIdAsOptional(id).orElseThrow(() -> new BusinessException(String.format("User with id [%s] wasn't find", id)));
 
         WalletRest userWallet = walletServiceClient.getUserWallet(id);
 

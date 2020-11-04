@@ -1,31 +1,20 @@
 package share.money.user.api.controller.model.response;
 
+
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
 public class OperationStatusModel {
 
     private String status;
     private String operationName;
 
-    public OperationStatusModel() {
-    }
-
-    public OperationStatusModel(String status, String operation) {
+    public OperationStatusModel(String status, String operationName) {
         this.status = status;
-        this.operationName = operation;
-    }
-
-    public String getStatus() {
-        return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
-    }
-
-    public String getOperationName() {
-        return operationName;
-    }
-
-    public void setOperationName(String operationName) {
         this.operationName = operationName;
     }
 }

@@ -9,7 +9,7 @@ public interface UserService extends UserDetailsService {
 
     UserDto createUser(UserDto userDto);
 
-    UserDto getUserById(String id);
+    UserDto getUserById(String id) throws BusinessException;
 
     List<UserDto> getUsers(Integer page, Integer limit);
 

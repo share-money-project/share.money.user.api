@@ -1,20 +1,19 @@
 package share.money.user.api.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.access.annotation.Secured;
 import org.springframework.web.bind.annotation.*;
+import share.money.user.api.controller.model.request.UserRequestModel;
 import share.money.user.api.controller.model.response.AddressRest;
 import share.money.user.api.controller.model.response.OperationStatusModel;
 import share.money.user.api.controller.model.response.UserRest;
-import share.money.user.api.controller.model.request.UserRequestModel;
 import share.money.user.api.service.AddressesService;
+import share.money.user.api.service.BusinessException;
 import share.money.user.api.service.UserService;
 import share.money.user.api.service.dto.AddressDto;
 import share.money.user.api.service.dto.UserDto;
 import share.money.user.api.shared.ModelMapper;
 import share.money.user.api.shared.Roles;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -24,14 +23,17 @@ import java.util.stream.Collectors;
 @RequestMapping(value = "/users")
 public class UserController {
 
-    @Autowired
     private UserService userService;
-
-    @Autowired
     private AddressesService addressesService;
 
+    @Autowired
+    public UserController(UserService userService, AddressesService addressesService) {
+        this.userService = userService;
+        this.addressesService = addressesService;
+    }
+
     @GetMapping(path = "/{id}")
-    public UserRest getUser(@PathVariable String id) {
+    public UserRest getUser(@PathVariable String id) throws BusinessException {
 
         UserDto userDto = userService.getUserById(id);
         return ModelMapper.map(userDto, UserRest.class);
@@ -42,7 +44,6 @@ public class UserController {
                                    @RequestParam(name = "limit", defaultValue = "25") Integer limit) {
 
         List<UserDto> userDto = userService.getUsers(page, limit);
-
         return userDto.stream().map(dto -> ModelMapper.map(dto, UserRest.class)).collect(Collectors.toList());
     }
 
